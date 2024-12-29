@@ -75,18 +75,22 @@ app.get("/api/law/:id", async (req, res) => {
   try {
     console.log("Fetching law data for ID:", req.params.id);
     const { id } = req.params;
-    const response = await axios.get(`${BASE_URL}/lawService.do`, {
-      params: {
-        OC: API_KEY,
-        target: "law",
-        type: "XML",
-        ID: id,
-      },
+    
+    // URL을 직접 구성
+    const url = `${BASE_URL}/lawService.do?OC=${API_KEY}&target=law&type=XML&ID=${id}`;
+    console.log("Requesting URL:", url);
+
+    const response = await axios.get(url, {
       responseType: "text",
       transformResponse: [(data) => data],
+      headers: {
+        'Accept': '*/*',
+        'User-Agent': 'Mozilla/5.0'
+      }
     });
 
     if (isErrorPage(response.data)) {
+      console.log("Error page detected in response");
       throw new Error("법령정보를 가져올 수 없습니다. API 키를 확인해주세요.");
     }
 
@@ -98,11 +102,13 @@ app.get("/api/law/:id", async (req, res) => {
   } catch (error) {
     console.error("Error in /api/law/:id:", error);
     if (error.response) {
-      console.error("API Response Error:", error.response.data);
+      console.error("API Response Status:", error.response.status);
+      console.error("API Response Headers:", error.response.headers);
+      console.error("API Response Data:", error.response.data);
     }
     res.status(500).json({
       error: error.message,
-      details: error.response?.data || "No additional details",
+      details: error.response?.data || "API 호출 중 오류가 발생했습니다.",
     });
   }
 });
@@ -112,19 +118,22 @@ app.get("/api/law-search", async (req, res) => {
   try {
     console.log("Searching laws with query:", req.query.query);
     const { query } = req.query;
-    const response = await axios.get(`${BASE_URL}/lawSearch.do`, {
-      params: {
-        OC: API_KEY,
-        target: "law",
-        type: "XML",
-        query,
-        display: "100",
-      },
+    
+    // URL을 직접 구성
+    const url = `${BASE_URL}/lawSearch.do?OC=${API_KEY}&target=law&type=XML&query=${encodeURIComponent(query)}&display=100`;
+    console.log("Requesting URL:", url);
+
+    const response = await axios.get(url, {
       responseType: "text",
       transformResponse: [(data) => data],
+      headers: {
+        'Accept': '*/*',
+        'User-Agent': 'Mozilla/5.0'
+      }
     });
 
     if (isErrorPage(response.data)) {
+      console.log("Error page detected in response");
       throw new Error("법령정보를 검색할 수 없습니다. API 키를 확인해주세요.");
     }
 
@@ -135,11 +144,13 @@ app.get("/api/law-search", async (req, res) => {
   } catch (error) {
     console.error("Error in /api/law-search:", error);
     if (error.response) {
-      console.error("API Response Error:", error.response.data);
+      console.error("API Response Status:", error.response.status);
+      console.error("API Response Headers:", error.response.headers);
+      console.error("API Response Data:", error.response.data);
     }
     res.status(500).json({
       error: error.message,
-      details: error.response?.data || "No additional details",
+      details: error.response?.data || "API 호출 중 오류가 발생했습니다.",
     });
   }
 });
