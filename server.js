@@ -17,7 +17,7 @@ app.use(
 
 app.use(express.json());
 
-const BASE_URL = "http://www.law.go.kr/DRF";
+const BASE_URL = "https://www.law.go.kr/DRF";
 const API_KEY = process.env.LAW_API_KEY || "choseongchan3712";
 
 // 기본 경로
@@ -77,20 +77,24 @@ app.get("/api/law/:id", async (req, res) => {
     const { id } = req.params;
     
     // URL을 직접 구성
-    const url = `${BASE_URL}/lawService.do?OC=${API_KEY}&target=law&type=XML&ID=${id}`;
+    const url = `${BASE_URL}/lawService.do?OC=${encodeURIComponent(API_KEY)}&target=law&type=XML&ID=${encodeURIComponent(id)}`;
     console.log("Requesting URL:", url);
 
     const response = await axios.get(url, {
       responseType: "text",
       transformResponse: [(data) => data],
       headers: {
-        'Accept': '*/*',
-        'User-Agent': 'Mozilla/5.0'
-      }
+        'Accept': 'application/xml, text/xml, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.law.go.kr/',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+      },
+      timeout: 10000
     });
 
     if (isErrorPage(response.data)) {
       console.log("Error page detected in response");
+      console.log("Response data:", response.data.substring(0, 500));
       throw new Error("법령정보를 가져올 수 없습니다. API 키를 확인해주세요.");
     }
 
@@ -120,20 +124,24 @@ app.get("/api/law-search", async (req, res) => {
     const { query } = req.query;
     
     // URL을 직접 구성
-    const url = `${BASE_URL}/lawSearch.do?OC=${API_KEY}&target=law&type=XML&query=${encodeURIComponent(query)}&display=100`;
+    const url = `${BASE_URL}/lawSearch.do?OC=${encodeURIComponent(API_KEY)}&target=law&type=XML&query=${encodeURIComponent(query)}&display=100`;
     console.log("Requesting URL:", url);
 
     const response = await axios.get(url, {
       responseType: "text",
       transformResponse: [(data) => data],
       headers: {
-        'Accept': '*/*',
-        'User-Agent': 'Mozilla/5.0'
-      }
+        'Accept': 'application/xml, text/xml, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.law.go.kr/',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+      },
+      timeout: 10000
     });
 
     if (isErrorPage(response.data)) {
       console.log("Error page detected in response");
+      console.log("Response data:", response.data.substring(0, 500));
       throw new Error("법령정보를 검색할 수 없습니다. API 키를 확인해주세요.");
     }
 
@@ -169,6 +177,13 @@ app.get("/api/precedent-search", async (req, res) => {
         org: "400201",
         display: "100",
       },
+      headers: {
+        'Accept': 'application/xml, text/xml, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.law.go.kr/',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+      },
+      timeout: 10000
     });
     const jsonData = await parseXML(response.data);
     res.json(jsonData);
@@ -189,6 +204,13 @@ app.get("/api/precedent/:id", async (req, res) => {
         type: "XML",
         ID: id,
       },
+      headers: {
+        'Accept': 'application/xml, text/xml, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.law.go.kr/',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+      },
+      timeout: 10000
     });
     const jsonData = await parseXML(response.data);
     res.json(jsonData);
@@ -211,6 +233,13 @@ app.get("/api/interpretation-search", async (req, res) => {
         page,
         display: "100",
       },
+      headers: {
+        'Accept': 'application/xml, text/xml, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.law.go.kr/',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+      },
+      timeout: 10000
     });
     const jsonData = await parseXML(response.data);
     res.json(jsonData);
@@ -231,12 +260,31 @@ app.get("/api/interpretation/:id", async (req, res) => {
         type: "XML",
         ID: id,
       },
+      headers: {
+        'Accept': 'application/xml, text/xml, */*',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Referer': 'https://www.law.go.kr/',
+        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7'
+      },
+      timeout: 10000
     });
     const jsonData = await parseXML(response.data);
     res.json(jsonData);
   } catch (error) {
     console.error("Error fetching interpretation:", error);
     res.status(500).json({ error: error.message });
+  }
+});
+
+// 서버 IP 확인 엔드포인트
+app.get("/api/server-ip", async (req, res) => {
+  try {
+    const response = await axios.get('https://api.ipify.org?format=json');
+    console.log('Server IP:', response.data.ip);
+    res.json({ serverIP: response.data.ip });
+  } catch (error) {
+    console.error('Error getting server IP:', error);
+    res.status(500).json({ error: 'Failed to get server IP' });
   }
 });
 
