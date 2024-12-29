@@ -30,17 +30,38 @@ app.get('/health', (req, res) => {
 
 // XML을 JSON으로 변환하는 함수
 const parseXML = async (xml) => {
-  return new Promise((resolve, reject) => {
-    xml2js.parseString(xml, { explicitArray: false }, (err, result) => {
-      if (err) reject(err);
-      else resolve(result);
+  try {
+    // XML 문자열 정제
+    const cleanXML = xml.replace(/&/g, '&amp;')
+                       .replace(/[\x00-\x1F\x7F-\x9F]/g, ''); // 제어 문자 제거
+
+    return new Promise((resolve, reject) => {
+      const parser = new xml2js.Parser({ 
+        explicitArray: false, 
+        explicitRoot: false,
+        mergeAttrs: true,
+        strict: false
+      });
+      
+      parser.parseString(cleanXML, (err, result) => {
+        if (err) {
+          console.error('XML Parse Error:', err);
+          reject(err);
+        } else {
+          resolve(result);
+        }
+      });
     });
-  });
+  } catch (error) {
+    console.error('XML Parsing Error:', error);
+    throw new Error('XML 파싱 중 오류가 발생했습니다');
+  }
 };
 
 // 법령 상세 정보
 app.get('/api/law/:id', async (req, res) => {
   try {
+    console.log('Fetching law data for ID:', req.params.id);
     const { id } = req.params;
     const response = await axios.get(`${BASE_URL}/lawService.do`, {
       params: {
@@ -48,19 +69,33 @@ app.get('/api/law/:id', async (req, res) => {
         target: 'law',
         type: 'XML',
         ID: id
-      }
+      },
+      responseType: 'text',  // XML을 텍스트로 받기
+      transformResponse: [(data) => data]  // 자동 변환 방지
     });
+
+    console.log('Raw XML response received');
+    console.log('Response data:', response.data.substring(0, 200) + '...'); // 처음 200자만 로깅
+
     const jsonData = await parseXML(response.data);
+    console.log('XML successfully converted to JSON');
     res.json(jsonData);
   } catch (error) {
-    console.error('Error fetching law data:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Error in /api/law/:id:', error);
+    if (error.response) {
+      console.error('API Response Error:', error.response.data);
+    }
+    res.status(500).json({ 
+      error: error.message,
+      details: error.response?.data || 'No additional details'
+    });
   }
 });
 
 // 법령 검색
 app.get('/api/law-search', async (req, res) => {
   try {
+    console.log('Searching laws with query:', req.query.query);
     const { query } = req.query;
     const response = await axios.get(`${BASE_URL}/lawSearch.do`, {
       params: {
@@ -69,13 +104,24 @@ app.get('/api/law-search', async (req, res) => {
         type: 'XML',
         query,
         display: '100'
-      }
+      },
+      responseType: 'text',
+      transformResponse: [(data) => data]
     });
+
+    console.log('Raw XML response received');
     const jsonData = await parseXML(response.data);
+    console.log('XML successfully converted to JSON');
     res.json(jsonData);
   } catch (error) {
-    console.error('Error searching law:', error);
-    res.status(500).json({ error: error.message });
+    console.error('Error in /api/law-search:', error);
+    if (error.response) {
+      console.error('API Response Error:', error.response.data);
+    }
+    res.status(500).json({ 
+      error: error.message,
+      details: error.response?.data || 'No additional details'
+    });
   }
 });
 
@@ -166,10 +212,13 @@ app.get('/api/interpretation/:id', async (req, res) => {
 
 const PORT = process.env.PORT || 10000;
 
-// 에러 핸들링
+// 에러 핸들링 미들웨어
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
-  res.status(500).json({ error: err.message });
+  console.error('Global Error Handler:', err);
+  res.status(500).json({ 
+    error: err.message,
+    details: err.response?.data || 'No additional details'
+  });
 });
 
 // 서버 시작
